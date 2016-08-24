@@ -11,13 +11,21 @@ import Twitter
 
 class TweetTableViewController: UITableViewController, UITextFieldDelegate {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // Outlets
+  // Outlets abd actions
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   @IBOutlet weak var searchTextField: UITextField! {
     didSet {
       searchTextField.delegate = self
       searchTextField.text     = searchText
     }
+  }
+
+  @IBAction func updateTweetList(sender: UIRefreshControl) {
+    if let str = searchText {
+      rebuildTweetList(str)
+    }
+
+    sender.endRefreshing()
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -32,10 +40,7 @@ class TweetTableViewController: UITableViewController, UITextFieldDelegate {
       if let str = searchText {
         // Remember what the user searched for
         SearchHistory.insert(str)
-
-        tweets.removeAll()
-        searchForTweets()
-        title = str
+        rebuildTweetList(str)
       }
     }
   }
@@ -44,6 +49,7 @@ class TweetTableViewController: UITableViewController, UITextFieldDelegate {
   // Public API
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   func textFieldShouldReturn(textField: UITextField) -> Bool {
+    // Hide keyboard
     textField.resignFirstResponder()
     searchText = textField.text
 
@@ -55,8 +61,8 @@ class TweetTableViewController: UITableViewController, UITextFieldDelegate {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   private var twitterRequest: Request? {
     return searchText != nil && !(searchText?.isEmpty)!
-      ? Twitter.Request(search: searchText! + " -filter:retweets", count: 100)
-      : nil
+           ? Twitter.Request(search: searchText! + " -filter:retweets", count: 100)
+           : nil
   }
 
   private var lastTwitterRequest: Request?
@@ -66,6 +72,14 @@ class TweetTableViewController: UITableViewController, UITextFieldDelegate {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Private API
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  private func rebuildTweetList(usingSearchText: String) {
+    print("Rebuilding tweet list using \(usingSearchText)")
+
+    tweets.removeAll()
+    searchForTweets()
+    title = usingSearchText
+  }
+
   private func searchForTweets() {
     if let request = twitterRequest {
       lastTwitterRequest = request
